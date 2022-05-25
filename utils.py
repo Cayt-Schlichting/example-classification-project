@@ -12,16 +12,19 @@ def stats_result(p,null_h,**kwargs):
     Optional inputs: alpha (default = .05), chi2, r, t
     
     """
-    #get r value if passed, else none
+    #Get alpha value - Default to .05 if not provided
+    alpha=kwargs.get('alpha',.05)
+    #get any additional statistical values passed (for printing)
     t=kwargs.get('t',None)
     r=kwargs.get('r',None)
     chi2=kwargs.get('chi2',None)
-    alpha=kwargs.get('alpha',.05) #default value of alpha is .05
-    print(f'\n\033[1mH\u2080:\033[0m {null_h}')
     
+    #Print null hypothesis
+    print(f'\n\033[1mH\u2080:\033[0m {null_h}')
+    #Test p value and print result
     if p < alpha: print(f"\033[1mWe reject the null hypothesis\033[0m, p = {p} | α = {alpha}")
     else: print(f"We failed to reject the null hypothesis, p = {p} | α = {alpha}")
-    
+    #Print any additional values for reference
     if 't' in kwargs: print(f'  t: {t}')
     if 'r' in kwargs: print(f'  r: {r}')
     if 'chi2' in kwargs: print(f'  chi2: {chi2}')
@@ -32,27 +35,31 @@ def stats_result(p,null_h,**kwargs):
 
 def get_model_stats(act,mod,pos,**kwargs):
     """
-    Gets model statistics.  Only handles binary target variables at the moment.
+    Gets model statistics.  Only handles binary target variables.
+
     Parameters:
       (R) -        act: pandas series of actual target values
-      (R) -        mod: pandas series of modeled target values (must be same length as act)
-      (R) -        pos: positive outcome for target variable 
+      (R) -        mod: pandas series of modeled target values (must be same length as act). 
+      (R) -        pos: positive outcome for target variable.
       (O) -     ret_df: If True, it returns a single row dataframe with model statistics. Index is model name.
-      (O) -  to_screen: If False, model doesn't print to screen.  Default True
-                        
+      (O) -  to_screen: If True, model statistics are printed to the screen.  Default True
+    
     NOTE:  
     recall = sensitivity = true positive rate
     miss rate = false negative rate
     specificity = true negative rate    
     """
-    #Get return df parameter.  Default is false, which returns none and prints the statistics
+    #Get any keyword arguements and set defaults.
+    # Default is to print to screen and not return None.
     ret_df = kwargs.get('ret_df',False)
     to_screen = kwargs.get('to_screen',True)
     
     #Create label list - binary confusion matrix needs positive value last
-    #populate rest of list with possible outcomes
+    #Get list of possible outcomes
     oth=list(act.unique())
+    #remove positive value
     oth.remove(pos)
+    #append postive value to end of list
     labels = oth +[pos]
     
     #run confusion matrix
@@ -61,11 +68,11 @@ def get_model_stats(act,mod,pos,**kwargs):
     #If two target variables ravel cm, else break softly 
     if len(labels) == 2: 
         tn, fp, fn, tp = cm.ravel()
-    else: #UPDATE THIS TO HANDLE 3+ OUTCOMES
+    else: 
         print('function cannot handle greater than 2 target variable outcomes')
         return None
     
-    #Calculate all the model scores
+    #Calculate all the model scores/statistics
     recall = recall_score(act,mod,pos_label=pos,zero_division=0)
     precision = precision_score(act,mod,pos_label=pos,zero_division=0)
     f1 = f1_score(act,mod,pos_label=pos,zero_division=0)
@@ -75,8 +82,7 @@ def get_model_stats(act,mod,pos,**kwargs):
     support_pos = tp + fn
     support_neg = fp + tn
     
-    
-    #print to screen unless user told you not to
+    #print to screen unless kwarg set otherwise
     if to_screen:
         print(f'\033[1mModel: {mod.name}  Positive: {pos}\033[0m')
         print('\033[4mConfusion Matrix\033[0m')
@@ -95,6 +101,7 @@ def get_model_stats(act,mod,pos,**kwargs):
     ##Store results in Pandas Dataframe
     # Don't pass in df, but create a new one and concat it outside the function
     if ret_df:
+        #Put stats in dictionary
         stats = {
             "Accuracy": acc,
             "precision": precision,
@@ -109,6 +116,7 @@ def get_model_stats(act,mod,pos,**kwargs):
             "FN": fn,
             "TN": tn,
         }
+        #convert and reshape data into dataframe, with index as model name and columns as the model statistics
         df = pd.DataFrame(data=stats,index=[mod.name])
         return df
     else: return None
